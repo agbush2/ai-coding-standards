@@ -1,0 +1,5 @@
+# Local configuration and secrets
+.env
+
+# Confluence content
+ai-agile/confluence/

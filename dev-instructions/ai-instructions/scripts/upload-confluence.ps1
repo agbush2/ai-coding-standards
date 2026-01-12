@@ -2,7 +2,7 @@ param(
   [string]$BaseUrl,
   [string]$Email,
   [string]$ApiToken,
-  [string]$SourceDir = "xhtml",
+  [string]$SourceDir = "ai-agile/confluence",
   [switch]$DryRun
 )
 
@@ -24,6 +24,20 @@ if (Test-Path $envPath) {
       [Environment]::SetEnvironmentVariable($key, $val, 'Process')
     }
   }
+}
+
+# Try to load config from SourceDir/confluence.config (Simple Key=Value format)
+$configPath = Join-Path -Path $SourceDir -ChildPath 'confluence.config'
+if (Test-Path $configPath) {
+    try {
+        # ConvertFrom-StringData parses "Key=Value" lines into a hashtable
+        $config = Get-Content -LiteralPath $configPath -Raw | ConvertFrom-StringData
+        if ($config.ContainsKey('BaseUrl') -and -not $BaseUrl) { $BaseUrl = $config['BaseUrl'] }
+        # Validates config loading but upload doesn't need PageId as it reads from file metadata
+    }
+    catch {
+        Write-Warning "Failed to load config from $configPath : $_"
+    }
 }
 
 # Fallback to env vars if parameters not supplied
