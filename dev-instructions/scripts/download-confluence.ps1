@@ -5,7 +5,7 @@ param(
     [string]$ApiToken,
     [string]$PageId,
     [string]$RootPageUrl,
-    [string]$OutDir = "ai-agile/confluence",
+    [string]$OutDir = "agile-ai/source-material/confluence",
     [ValidateSet('html', 'xhtml')] [string]$Format = 'xhtml',
     [int]$MaxDepth = 5,
     [switch]$SinglePageOnly
