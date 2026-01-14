@@ -5,10 +5,10 @@ param(
     [string]$ApiToken,
     [string]$PageId,
     [string]$RootPageUrl,
-    [string]$OutDir = "xhtml",
+    [string]$OutDir = "ai-agile/confluence",
     [ValidateSet('html', 'xhtml')] [string]$Format = 'xhtml',
     [int]$MaxDepth = 5,
-    [switch]$IncludeChildren
+    [switch]$SinglePageOnly
 )
 
 # Reference Implementation:
@@ -29,6 +29,20 @@ if (Test-Path $envPath) {
             $val = $Matches['v']
             [Environment]::SetEnvironmentVariable($key, $val, 'Process')
         }
+    }
+}
+
+# Try to load config from OutDir/confluence.config (Simple Key=Value format)
+$configPath = Join-Path -Path $OutDir -ChildPath 'confluence.config'
+if (Test-Path $configPath) {
+    try {
+        # ConvertFrom-StringData parses "Key=Value" lines into a hashtable
+        $config = Get-Content -LiteralPath $configPath -Raw | ConvertFrom-StringData
+        if ($config.ContainsKey('BaseUrl') -and -not $BaseUrl) { $BaseUrl = $config['BaseUrl'] }
+        if ($config.ContainsKey('PageId') -and -not $PageId) { $PageId = $config['PageId'] }
+    }
+    catch {
+        Write-Warning "Failed to load config from $configPath : $_"
     }
 }
 
@@ -126,7 +140,16 @@ function Get-Children {
         $path = ("/wiki/rest/api/content/{0}/child/page?limit={1}&start={2}" -f $Id, $limit, $start)
         $response = Invoke-ConfluenceGet -Path $path -Headers $Headers
         if ($response.results) { $results += $response.results }
-        if (-not $response._links.next) { break }
+        
+        # Check for pagination using psbase property check or try/catch to avoid strict mode error
+        $hasNext = $false
+        if ($response.psobject.Properties[' _links'] -or $response.psobject.Properties['_links']) {
+             if ($response._links.psobject.Properties['next']) {
+                 $hasNext = $true
+             }
+        }
+        
+        if (-not $hasNext) { break }
         $start += $limit
     }
     return $results
@@ -287,8 +310,17 @@ function Invoke-TreeWalk {
         if ($Depth -ge $MaxDepth) { return }
 
         $children = Get-Children -Id $Id -Headers $Headers
-        if ($children.Count -gt 0) {
-            Write-Verbose "Found $($children.Count) child page(s) under id=$Id"
+        
+        # Safe count check for Strict Mode
+        $childCount = 0
+        if ($children) {
+             if ($children.psobject.Properties['Count']) { $childCount = $children.Count }
+             elseif ($children -is [array]) { $childCount = $children.Length }
+             else { $childCount = 1 } # Single object
+        }
+
+        if ($childCount -gt 0) {
+            Write-Verbose "Found $childCount child page(s) under id=$Id"
         }
         foreach ($childPage in $children) {
             # Always write to the same directory (flat)
@@ -319,7 +351,7 @@ else {
     throw "You must provide -PageId or -RootPageUrl."
 }
 
-if ($IncludeChildren) {
+if (-not $SinglePageOnly) {
     Write-Verbose "Starting tree download from page id=$rootId (max depth $MaxDepth)"
     Invoke-TreeWalk -RootId $rootId -Headers $headers -OutDir $OutDir -Format $Format -MaxDepth $MaxDepth
 }
