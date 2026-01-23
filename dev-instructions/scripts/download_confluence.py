@@ -49,6 +49,9 @@ def get_page(base_url: str, page_id: str, headers: Dict[str, str]) -> Any:
     Returns the page JSON object.
     """
     url = f"{base_url}/wiki/rest/api/content/{page_id}?expand=body.storage,version,ancestors,space"
+    if hasattr(get_page, 'verbose') and get_page.verbose:
+        print(f"[DEBUG] GET PAGE URL: {url}")
+        print(f"[DEBUG] HEADERS: {headers}")
     resp = requests.get(url, headers=headers)
     resp.raise_for_status()
     return resp.json()
@@ -59,6 +62,9 @@ def get_attachments(base_url: str, page_id: str, headers: Dict[str, str]) -> lis
     Returns a list of attachment JSON objects.
     """
     url = f"{base_url}/wiki/rest/api/content/{page_id}/child/attachment?limit=100"
+    if hasattr(get_attachments, 'verbose') and get_attachments.verbose:
+        print(f"[DEBUG] GET ATTACHMENTS URL: {url}")
+        print(f"[DEBUG] HEADERS: {headers}")
     resp = requests.get(url, headers=headers)
     resp.raise_for_status()
     return resp.json().get("results", [])
@@ -69,12 +75,15 @@ def get_children(base_url: str, page_id: str, headers: Dict[str, str]) -> Any:
     Returns a list of child page JSON objects.
     """
     url = f"{base_url}/wiki/rest/api/content/{page_id}/child/page?limit=100"
+    if hasattr(get_children, 'verbose') and get_children.verbose:
+        print(f"[DEBUG] GET CHILDREN URL: {url}")
+        print(f"[DEBUG] HEADERS: {headers}")
     resp = requests.get(url, headers=headers)
     resp.raise_for_status()
     return resp.json().get("results", [])
 
 
-def save_page(page: Dict[str, Any], out_dir: Path, base_url: str, verbose: bool = False, attachments: list = None, download_attachments: bool = True):
+def save_page(page: Dict[str, Any], out_dir: Path, base_url: str, headers: Dict[str, str], verbose: bool = False, attachments: list = None, download_attachments: bool = True):
     """
     Save a Confluence page as an .xhtml file with front-matter metadata.
     Optionally download attachments and images to the output directory.
@@ -94,6 +103,9 @@ def save_page(page: Dict[str, Any], out_dir: Path, base_url: str, verbose: bool 
 
     # Download attachments if enabled
     if download_attachments and attachments:
+        # Use credentials passed to save_page, not from environment
+        # Find email/token from headers
+        auth_header = headers if 'Authorization' in headers else None
         for att in attachments:
             att_title = att.get('title', 'attachment')
             att_id = att.get('id', '')
@@ -112,7 +124,10 @@ def save_page(page: Dict[str, Any], out_dir: Path, base_url: str, verbose: bool 
                         full_url = wiki_base + att_url
                     else:
                         full_url = base_url.rstrip('/') + att_url
-                    resp = requests.get(full_url, headers=get_auth_header(os.environ.get('CONF_EMAIL', ''), os.environ.get('CONF_TOKEN', '')))
+                    if verbose:
+                        print(f"[DEBUG] DOWNLOAD ATTACHMENT URL: {full_url}")
+                        print(f"[DEBUG] HEADERS: {headers}")
+                    resp = requests.get(full_url, headers=headers)
                     resp.raise_for_status()
                     att_file_path.write_bytes(resp.content)
                     if verbose:
@@ -143,7 +158,10 @@ def save_page(page: Dict[str, Any], out_dir: Path, base_url: str, verbose: bool 
                                     full_url = wiki_base + att_url
                                 else:
                                     full_url = base_url.rstrip('/') + att_url
-                                resp = requests.get(full_url, headers=get_auth_header(os.environ.get('CONF_EMAIL', ''), os.environ.get('CONF_TOKEN', '')))
+                                if verbose:
+                                    print(f"[DEBUG] DOWNLOAD IMAGE URL: {full_url}")
+                                    print(f"[DEBUG] HEADERS: {headers}")
+                                resp = requests.get(full_url, headers=headers)
                                 resp.raise_for_status()
                                 img_file_path.write_bytes(resp.content)
                                 if verbose:
@@ -204,28 +222,71 @@ def download_tree(base_url: str, root_id: str, headers: Dict[str, str], out_dir:
     if root_id in seen or depth > max_depth:
         return
     seen.add(root_id)
+    # Propagate verbose flag to all functions
+    if hasattr(download_tree, 'verbose') and download_tree.verbose:
+        get_page.verbose = True
+        get_attachments.verbose = True
+        get_children.verbose = True
+    else:
+        get_page.verbose = False
+        get_attachments.verbose = False
+        get_children.verbose = False
     page = get_page(base_url, root_id, headers)
     attachments = get_attachments(base_url, root_id, headers) if download_attachments else []
-    save_page(page, out_dir, base_url, verbose=download_tree.verbose if hasattr(download_tree, 'verbose') else False, attachments=attachments, download_attachments=download_attachments)
+    save_page(page, out_dir, base_url, headers, verbose=download_tree.verbose if hasattr(download_tree, 'verbose') else False, attachments=attachments, download_attachments=download_attachments)
     for child in get_children(base_url, root_id, headers):
         download_tree(base_url, child["id"], headers, out_dir, max_depth, depth + 1, seen, download_attachments=download_attachments)
 
+
+
+def load_ai_agile_config(config_path: Path) -> Dict[str, str]:
+    """
+    Load configuration from ai-agile.config file.
+    Returns a dictionary of key-value pairs.
+    """
+    config = {}
+    if config_path.exists():
+        for line in config_path.read_text().splitlines():
+            if line.strip().startswith("#") or "=" not in line:
+                continue
+            k, v = line.split("=", 1)
+            config[k.strip()] = v.strip()
+    return config
 
 def main():
     """
     Main entry point: loads config, parses arguments, and starts download.
     """
     cwd = Path.cwd()
-    env = load_env(cwd / ".env")
-    config = load_config(cwd / "confluence.config")
+    # Find ai-agile root (walk up until ai-agile.config is found)
+    ai_agile_root = cwd
+    for _ in range(5):
+        if (ai_agile_root / "ai-agile.config").exists():
+            break
+        if ai_agile_root.parent == ai_agile_root:
+            break
+        ai_agile_root = ai_agile_root.parent
+    ai_agile_config = load_ai_agile_config(ai_agile_root / "ai-agile.config")
+
+    # Get all relevant folders from ai-agile.config
+    source_material_path = ai_agile_config.get("SOURCE_MATERIAL_PATH", "01_source-material")
+    generated_material_path = ai_agile_config.get("GENERATED_MATERIAL_PATH", "02_generated_materials")
+    requirements_path = ai_agile_config.get("REQUIREMENTS_PATH", "03_requirements")
+    specifications_path = ai_agile_config.get("SPECIFICATIONS_PATH", "04_specifications")
+
+    # Use the source material path as the default working directory for confluence sync
+    confluence_dir = ai_agile_root / source_material_path / "confluence"
+    out_dir = confluence_dir
+
+    env = load_env(confluence_dir / ".env")
+    config = load_config(confluence_dir / "confluence.config")
     base_url = config.get("BaseUrl") or env.get("BASE_URL")
     page_id = config.get("PageId")
     email = env.get("CONF_EMAIL")
     token = env.get("CONF_TOKEN")
-    out_dir = cwd
 
     if not all([base_url, page_id, email, token]):
-        raise RuntimeError("Missing credentials or config. Check .env and confluence.config.")
+        raise RuntimeError("Missing credentials or config. Check .env and confluence.config in the source material confluence folder.")
 
     headers = get_auth_header(email, token)
     # Enable verbose output if requested via environment or argument

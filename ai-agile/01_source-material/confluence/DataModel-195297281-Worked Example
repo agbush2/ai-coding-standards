@@ -1,0 +1,66 @@
+graph LR
+upstream --> node 
+node --> downstream2 
+ 
+    A1[A1
+      status=AS
+      score=100%
+      depth=3
+      ]
+    A2[A2
+      status=XX
+      score=0%
+      depth=3
+      ]
+    A3[A3
+      status=XX
+      score=0%
+      depth=3]
+    A4[A4
+      status=AS
+      score=100%
+      depth=3
+    ]
+    A5[A5
+      status=AR
+      score=100%
+      depth=2
+      ]
+    B1[B1
+      status=XX
+      score=50%
+      depth=2
+    ]
+    B2[B2
+      status=XX
+      score=66.6%
+      depth=2]
+    B3[B3
+      stat
+      us=AR
+      score=100%
+      depth=2]
+    C1[C1
+      status=XX
+      score=33.3%
+      depth=1]
+    C2[C2
+      status=COM
+      score=100%
+      depth=1]
+    D1[D1
+      status=EPV
+      score=66.6%
+      depth=0]
+
+    A1--> B1
+    A2 --> B1
+    A3 --> B2
+    A4 --> B2
+    A5 --> B2
+    B1 --> C1
+    B2 --> C1
+    B3 --> C2
+    A5 --> C2
+    C1 --> D1
+    C2 --> D1

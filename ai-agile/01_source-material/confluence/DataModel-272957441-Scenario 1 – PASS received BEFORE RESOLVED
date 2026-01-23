@@ -1,0 +1,16 @@
+sequenceDiagram
+title Implementation 1 – Data Quality Engine and Exception Work Engine Fully Syncronised
+
+participant WE1 as Data Quality Engine
+participant WE2 as Workflow Engine
+
+Note left of WE1: FAIL
+
+WE1->>WE2: Create New Work Item
+Note right of WE2: NEW
+
+Note left of WE1: PASS
+
+WE1->>WE2: Resolve Existing Workitem
+Note right of WE2: RESOLVED
+Note right of WE2: VALIDATED

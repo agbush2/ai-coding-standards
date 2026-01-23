@@ -1,0 +1,20 @@
+erDiagram
+
+ATTRIBUTE {
+  guid nodeID
+  string nodeName
+  enum nodeType "INVENTORY"
+  enum nodeType "ATTRIBUTE"
+}
+
+inventoryInformation ||--|| ATTRIBUTE : information
+inventoryInformation {
+  enum    inventoryType "lineageType describes the type of attribute in the lineage tree"
+  string  inventoryName 
+}
+
+profileInformation ||--|| ATTRIBUTE : information
+inventoryInformation {
+  enum    inventoryType "lineageType describes the type of attribute in the lineage tree"
+  string  inventoryName 
+}

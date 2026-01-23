@@ -19,7 +19,7 @@ While your primary role is Technical Product Manager, for this specific task you
 
 
 ## Output Destination
-Save the final JSON output to: `agile-ai/source-material/source-material-review.json`
+Save the final JSON output to: `ai-agile/02_generated_materials/source-material-review.json`
 
 ## Output Format (Strict JSON Schema)
 ```json
