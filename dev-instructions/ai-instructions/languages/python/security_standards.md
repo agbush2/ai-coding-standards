@@ -24,3 +24,10 @@ This file provides the Python-specific implementation ("How") for the security c
   class Settings(BaseSettings):
       db_password: str  # Will load from DB_PASSWORD env var
   ```
+
+## Dependency Vulnerability Scanning
+- **CI Requirement**: All CI pipelines must include a step to scan for known vulnerabilities in dependencies using `pip-audit` or `safety`.
+- **Example**:
+  ```yaml
+  - run: poetry run pip-audit
+  ```

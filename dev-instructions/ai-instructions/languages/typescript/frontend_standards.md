@@ -38,6 +38,15 @@ interface ButtonProps {
 
 export function Button({ children, onClick, disabled }: ButtonProps) {
   return (
+---
+
+## 4. Accessibility (a11y) Best Practices
+- **Linting**: Use `eslint-plugin-jsx-a11y` to enforce accessibility rules in React projects.
+- **Semantic HTML**: Prefer semantic elements (`<button>`, `<nav>`, `<main>`, etc.) over generic `<div>`/`<span>`.
+- **ARIA Attributes**: Use ARIA attributes only when necessary, and prefer native HTML features.
+- **Keyboard Navigation**: Ensure all interactive elements are keyboard accessible.
+- **Color Contrast**: Meet WCAG AA color contrast requirements.
+- **Testing**: Use tools like axe-core or Lighthouse to audit accessibility.
     <button
       onClick={onClick}
       disabled={disabled}

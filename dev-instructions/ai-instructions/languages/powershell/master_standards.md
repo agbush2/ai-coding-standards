@@ -1,3 +1,11 @@
+## Quick Start for Agents
+
+When asked to write PowerShell code:
+
+1. Read `/master_instructions.md` for the plan.
+2. Read `languages/powershell/coding_standards.md` for style and module structure.
+3. Read `languages/powershell/examples.md` for templates.
+4. Check `languages/powershell/forbidden_standards.md` before finalizing.
 # POWERSHELL INSTRUCTIONS (The "How")
 Version: 1.0.0
 Parent: /master_instructions.md

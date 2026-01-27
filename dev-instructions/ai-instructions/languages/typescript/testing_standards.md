@@ -1,3 +1,7 @@
+
+## Coverage Reporting
+- **Threshold**: Minimum 80% code coverage required for PR approval.
+- **Reporting Tools**: Use `vitest` or `jest` with coverage enabled and integrate with Coveralls or Codecov for CI reporting.
 # TypeScript Testing Standards
 Implementation of: /testing_standards.md
 

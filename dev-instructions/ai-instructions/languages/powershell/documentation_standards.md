@@ -37,3 +37,19 @@ function Get-Widget {
 
 ## Changelog
 - Maintain `CHANGELOG.md` following [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
+
+## Module & Manifest Documentation
+- **Module-Level Help**: Add comment-based help at the top of `.psm1` files to describe the module's purpose, usage, and exported functions.
+- **Manifest (`.psd1`)**: Document all fields, especially `Description`, `Author`, `CompanyName`, `Copyright`, and `FunctionsToExport`.
+- **Example**:
+    ```powershell
+    <#
+    .SYNOPSIS
+        MyModule provides advanced widget management.
+    .DESCRIPTION
+        This module exposes functions for creating, updating, and deleting widgets.
+    .NOTES
+        Author: Jane Doe
+        CompanyName: ExampleCorp
+    #>
+    ```

@@ -38,6 +38,40 @@ export const createItem = async (req: Request, res: Response, next: NextFunction
 
     const newItem = await itemService.create(data);
     
+```
+
+---
+
+## Template 3: React Functional Component (Strict Typing)
+```tsx
+import React from 'react';
+
+interface ButtonProps {
+  children: React.ReactNode;
+  onClick: () => void;
+  disabled?: boolean;
+}
+
+export function Button({ children, onClick, disabled = false }: ButtonProps) {
+  return (
+    <button onClick={onClick} disabled={disabled}>
+      {children}
+    </button>
+  );
+}
+```
+
+## Template 4: Vitest/React Testing Library Example
+```tsx
+import { render, screen, fireEvent } from '@testing-library/react';
+import { Button } from './Button';
+
+test('calls onClick when clicked', () => {
+  const handleClick = vi.fn();
+  render(<Button onClick={handleClick}>Click me</Button>);
+  fireEvent.click(screen.getByText('Click me'));
+  expect(handleClick).toHaveBeenCalledTimes(1);
+});
     res.status(201).json(newItem);
   } catch (error) {
     next(error);

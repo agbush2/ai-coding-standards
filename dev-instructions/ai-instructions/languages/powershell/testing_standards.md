@@ -19,6 +19,10 @@ Implementation of: /testing_standards.md
 - **Metric**: Aim for 80%+ code coverage on logic-heavy functions.
 - **Tools**: Use `Invoke-Pester -CodeCoverage` to generate reports.
 
+## Coverage Reporting
+- **Threshold**: Minimum 80% code coverage required for PR approval.
+- **Reporting Tools**: Integrate with Coveralls or Codecov for CI reporting if possible.
+
 ## Example
 ```powershell
 Describe 'Get-MyWidget' {

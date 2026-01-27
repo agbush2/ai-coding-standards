@@ -25,3 +25,24 @@ The following code patterns are strictly prohibited.
 5.  **Positional Parameters (Implicit)**
     - **Reason**: Fragile and hard to read.
     - **Alternative**: Always use named parameters in scripts (e.g. `Get-Item -Path .` not `Get-Item .`).
+6.  **Disabling Execution Policy**
+    - **Reason**: Weakens system security posture.
+    - **Alternative**: Use signed scripts and proper code signing policies.
+
+7.  **Add-Type with Untrusted Input**
+    - **Reason**: Can introduce arbitrary code execution.
+    - **Alternative**: Only use with trusted, static code.
+
+8.  **Unvalidated User Input in File Operations**
+    - **Reason**: Risk of path traversal, data loss, or privilege escalation.
+    - **Alternative**: Always validate and sanitize user input before using in file or system operations.
+
+9.  **Bypassing Certificate Validation**
+    - **Reason**: Exposes to man-in-the-middle attacks.
+    - **Alternative**: Always validate SSL/TLS certificates.
+
+10. **Suppressing All Errors (`-ErrorAction SilentlyContinue`)**
+    - **Reason**: Hides failures, makes debugging and auditing impossible.
+    - **Alternative**: Handle errors explicitly with try/catch and logging.
+
+```

@@ -19,3 +19,27 @@ This file provides the Python-specific implementation ("How") for the operations
 - Use multi-stage builds.
 - Use `python:3.12-slim` or `distroless`.
 - Don't run as root.
+
+## Dependency Pinning
+- **Lock Files**: Always commit `poetry.lock` or `requirements.txt` with hashes to ensure reproducible builds.
+- **Review**: Regularly update and review dependencies for security and compatibility.
+
+## CI Example: GitHub Actions Workflow
+```yaml
+name: Python CI
+on: [push, pull_request]
+jobs:
+	build:
+		runs-on: ubuntu-latest
+		steps:
+			- uses: actions/checkout@v3
+			- uses: actions/setup-python@v4
+				with:
+					python-version: '3.12'
+			- run: pip install poetry
+			- run: poetry install
+			- run: poetry run ruff check .
+			- run: poetry run mypy src
+			- run: poetry run pytest --cov=src
+			- run: poetry run bandit -r src
+```

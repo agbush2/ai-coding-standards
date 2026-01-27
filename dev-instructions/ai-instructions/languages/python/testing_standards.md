@@ -15,6 +15,10 @@ This file provides the Python-specific implementation ("How") for the testing st
 - **Factories**: Use `factory_boy` or custom Pydantic factories.
 - **Markers**: Use `@pytest.mark.integration` for slow tests.
 
+## Coverage Reporting
+- **Threshold**: Minimum 80% code coverage required for PR approval.
+- **Reporting Tools**: Use `pytest-cov` and integrate with Coveralls or Codecov for CI reporting.
+
 ## Example: Unit Test
 ```python
 import pytest
