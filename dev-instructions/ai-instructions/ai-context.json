@@ -1,7 +1,7 @@
 {
   "version": "1.0.0",
   "description": "Coding Standards and Guidelines for AI Agents",
-  "entry_point": "./master_standards.md",
+  "entry_point": "./persona_standards.md",
   "standards": {
     "architecture": "./architecture_standards.md",
     "security": "./security_standards.md",
@@ -34,7 +34,7 @@
       "style": "./data/postgres/data_standards.md"
     }
   },
-  "instructions": "When generating code, first identify the target language. Then, load the 'root' instruction file for that language. Always cross-reference with the global 'standards' files. Also, reference the 'skills/' folder and 'skills/agents.md' for reusable prompt engineering skills and agent orchestration patterns.",
+  "instructions": "Start by selecting an active persona via persona_standards.md and loading its persona file under personas/. When generating code, identify the target language, then load the 'root' instruction file for that language. Always cross-reference with the global 'standards' files. Also reference the 'skills/' folder and 'skills/agents.md' for reusable prompt engineering skills and agent orchestration patterns.",
   "skills": "./skills/",
   "agents": "./skills/agents.md"
 }

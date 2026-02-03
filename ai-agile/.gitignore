@@ -1,5 +1,6 @@
 # Local configuration and secrets
-.env
+**/.env
 
-# Confluence content
-ai-agile/source-materials
+# Confluence content (downloaded)
+01_source-material/confluence/*
+!01_source-material/confluence/confluence.config

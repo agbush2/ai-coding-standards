@@ -48,7 +48,7 @@ For each item, provide:
 
 
 ## Validation Phase (Required)
-After the JSON is built, perform a recursive validation check:
+After the inventory is built, perform a recursive validation check:
 
 1.  **Omission Check**: Did you capture every capitalized term, major section header, and unique concept from every document?
 2.  **Traceability Audit**: Does every item have a `sources` array with at least one entry?
@@ -60,7 +60,7 @@ After the JSON is built, perform a recursive validation check:
 - Work in **two distinct logical passes**: (1) Extraction (authoritative, exhaustive), then (2) Validation (semantic and traceability audit).
 - Do **not summarize excessively**—capture the full, source-authentic context for every item.
 - Ensure **no item appears unless it has an identifiable source**.
-- Save your output to `ai-agile/02_generated_materials/source-material-review.json`
+- Save a structured JSON artifact to `ai-agile/02_generated_materials/source-material-review.json`.
 - Search and extract from all `.md` files in `ai-agile/02_generated_materials/`.
 - Think step-by-step. Be rigorous. Use domain-accurate language. Treat this inventory as the single source of truth for all downstream requirements, architecture, and QA.
 ```

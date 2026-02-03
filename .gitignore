@@ -1,2 +1,9 @@
-# Exclude all source material from git
-ai-agile/source-material/*
+# Python
+**/__pycache__/
+*.py[cod]
+
+# Virtual environments
+.venv/
+
+# ai-agile: exclude downloaded source material from git
+ai-agile/01_source-material/

@@ -16,7 +16,7 @@ This repository is divided into two main components:
 
 2.  **`ai-agile/` (Workspace/Usage)**:
     *   Represents a "user" environment where standards are applied.
-    *   Stores downloaded Confluence content in `source-material/confluence/`.
+    *   Stores downloaded Confluence content in `01_source-material/confluence/`.
     *   Contains local configuration (`.env`, `confluence.config`).
 
 ## 💻 Developer Workflows
@@ -25,7 +25,7 @@ This repository is divided into two main components:
 *   **Scripts**: Located in `dev-instructions/scripts/`.
 *   **Execution**:
     *   **Context Matters**: Scripts load `.env` from the **current working directory**.
-    *   **Pattern**: always use `Set-Location` to the target configuration folder (e.g., `ai-agile/source-material/confluence`) before running scripts.
+    *   **Pattern**: always use `Set-Location` to the target configuration folder (e.g., `ai-agile/01_source-material/confluence`) before running scripts.
     *   **Permissions**: frequent need for `-ExecutionPolicy Bypass` if running on restricted setups.
     *   **Command**: `PowerShell -ExecutionPolicy Bypass -File "..\..\dev-instructions\scripts\download-confluence.ps1" -OutDir .` (relative path example)
 *   **Configuration**:
@@ -61,6 +61,6 @@ This repository is divided into two main components:
 
 ```powershell
 # Sync Confluence content (Run from target directory)
-Set-Location ai-agile\source-material\confluence
+Set-Location ai-agile\01_source-material\confluence
 PowerShell -ExecutionPolicy Bypass -File "..\..\..\dev-instructions\scripts\download-confluence.ps1" -OutDir .
 ```

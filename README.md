@@ -55,7 +55,7 @@ When starting a new session with an AI coding assistant, provide the following c
 
 This project includes scripts to sync documentation with Atlassian Confluence:
 
-*   **Download**: `scripts/download-confluence.ps1` - Fetches pages as XHTML/HTML to `agile-ai/source-material/confluence`.
+*   **Download**: `scripts/download-confluence.ps1` - Fetches pages as XHTML/HTML to `ai-agile/01_source-material/confluence`.
 *   **Upload**: `scripts/upload-confluence.ps1` - Pushes updates back to Confluence.
 
 The **Product Manager** persona is trained to use these scripts for requirements gathering.

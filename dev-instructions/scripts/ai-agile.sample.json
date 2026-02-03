@@ -1,0 +1,36 @@
+{
+  "basePaths": {
+    "repoRoot": "<REPO_ROOT>",
+    "aiAgileRoot": "<REPO_ROOT>/ai-agile",
+    "aiInstructionsRoot": "<REPO_ROOT>/dev-instructions/ai-instructions"
+  },
+  "process": {
+    "stepOrder": [
+      "SourceMaterial",
+      "GeneratedMaterials",
+      "Requirements",
+      "Specifications"
+    ],
+    "steps": {
+      "SourceMaterial": {
+        "folder": "01_source-material",
+        "purpose": "Raw inputs and references (e.g., Confluence exports).",
+        "subfolders": {
+          "confluence": "01_source-material/confluence"
+        }
+      },
+      "GeneratedMaterials": {
+        "folder": "02_generated_materials",
+        "purpose": "AI-produced markdown outputs derived from source material."
+      },
+      "Requirements": {
+        "folder": "03_requirements",
+        "purpose": "User stories, epics, acceptance criteria, constraints."
+      },
+      "Specifications": {
+        "folder": "04_specifications",
+        "purpose": "Design docs, technical specs, implementation plans."
+      }
+    }
+  }
+}
