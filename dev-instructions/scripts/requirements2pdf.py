@@ -173,6 +173,115 @@ def _load_brd_sections(path: Path) -> dict[str, Any]:
     return data
 
 
+def _get_by_dotted_path(obj: Any, dotted: str) -> Any:
+    """Get a value from a dict using dotted paths like 'requirement.kind'.
+
+    Only supports dict traversal. If a non-dict is encountered mid-path, returns None.
+    """
+
+    if not isinstance(dotted, str) or not dotted.strip():
+        return None
+
+    path = dotted.strip()
+    if path.startswith("requirement."):
+        path = path[len("requirement.") :]
+    elif path == "requirement":
+        return obj
+
+    cur: Any = obj
+    for part in path.split("."):
+        if not isinstance(cur, dict):
+            return None
+        cur = cur.get(part)
+    return cur
+
+
+def _eval_op(value: Any, op: str, expected: Any) -> bool:
+    if op == "exists":
+        exists = value is not None
+        return exists is bool(expected) if isinstance(expected, bool) else exists
+
+    if op == "eq":
+        return value == expected
+
+    if op == "in":
+        return isinstance(expected, list) and value in expected
+
+    if op == "contains":
+        if isinstance(value, list):
+            return expected in value
+        if isinstance(value, str) and isinstance(expected, str):
+            return expected in value
+        return False
+
+    if op == "containsText":
+        if isinstance(expected, str):
+            needle = expected.lower()
+        else:
+            return False
+
+        if isinstance(value, str):
+            return needle in value.lower()
+        if isinstance(value, list):
+            return any(isinstance(v, str) and needle in v.lower() for v in value)
+        return False
+
+    return False
+
+
+def _eval_match_expr(requirement: dict[str, Any], expr: Any) -> bool:
+    """Evaluate a brd_sections.json match expression against a requirement."""
+
+    if not isinstance(expr, dict):
+        return False
+
+    if "any" in expr:
+        items = expr.get("any")
+        return isinstance(items, list) and any(_eval_match_expr(requirement, it) for it in items)
+
+    if "all" in expr:
+        items = expr.get("all")
+        return isinstance(items, list) and all(_eval_match_expr(requirement, it) for it in items)
+
+    field = expr.get("field")
+    op = expr.get("op")
+    expected = expr.get("value")
+    if not isinstance(field, str) or not isinstance(op, str):
+        return False
+
+    value = _get_by_dotted_path(requirement, field)
+    return _eval_op(value, op, expected)
+
+
+def _assign_brd_section_id(
+    requirement: dict[str, Any],
+    *,
+    sections: list[dict[str, Any]],
+    assignment_policy: dict[str, Any],
+) -> str:
+    first_match_wins = bool(assignment_policy.get("firstMatchWins", True))
+    unassigned_id = assignment_policy.get("unassignedSectionId")
+    unassigned = unassigned_id if isinstance(unassigned_id, str) and unassigned_id else "BRD-99"
+
+    matched: list[str] = []
+    for section in sections:
+        sid = section.get("id")
+        if not isinstance(sid, str) or not sid:
+            continue
+
+        match_rules = section.get("match")
+        if not isinstance(match_rules, list) or not match_rules:
+            continue
+
+        # Treat match list as OR across rule blocks.
+        if any(_eval_match_expr(requirement, rule) for rule in match_rules):
+            matched.append(sid)
+            if first_match_wins:
+                return sid
+
+    return matched[0] if matched else unassigned
+
+
 def _coerce_brd_section_id(
     section_id: Any,
     *,
@@ -362,8 +471,13 @@ def build_pdf(
     if not isinstance(unassigned_id, str) or unassigned_id not in valid_section_ids:
         unassigned_id = "BRD-99" if "BRD-99" in valid_section_ids else (next(iter(valid_section_ids)) if valid_section_ids else "BRD-99")
 
-    # Build index: sectionId -> documentKey(relativePath) -> {title, meta, requirements[]}
-    section_index: dict[str, dict[str, dict[str, Any]]] = {sid: {} for sid in valid_section_ids}
+    assignment_policy = brd_cfg.get("assignmentPolicy") if isinstance(brd_cfg.get("assignmentPolicy"), dict) else {}
+
+    # Collect doc metadata by sourceDocument.relativePath to support bibliography.
+    doc_info_by_rel: dict[str, dict[str, Any]] = {}
+
+    # Index: sectionId -> kind -> list[{req, docRel}]
+    section_index: dict[str, dict[str, list[dict[str, Any]]]] = {sid: {} for sid in valid_section_ids}
     open_questions_by_doc: list[tuple[str, str, list[str]]] = []
 
     for path in requirement_files:
@@ -371,7 +485,18 @@ def build_pdf(
         doc_title = _doc_title_from_json(data, fallback=path.name)
         doc_rel = _safe_get(data, ["sourceDocument", "relativePath"], None)
         doc_key = str(doc_rel).strip() if isinstance(doc_rel, str) and doc_rel.strip() else path.name
-        doc_meta = _format_source_metadata(data)
+
+        confluence = _safe_get(data, ["sourceDocument", "confluence"], None)
+        url = confluence.get("url") if isinstance(confluence, dict) else None
+
+        doc_info_by_rel.setdefault(
+            doc_key,
+            {
+                "title": doc_title,
+                "relativePath": doc_key,
+                "url": url,
+            },
+        )
 
         if include_open_questions:
             oq = data.get("openQuestions")
@@ -383,23 +508,20 @@ def build_pdf(
         reqs_raw = _as_list(data.get("requirements"))
         reqs: list[dict[str, Any]] = [r for r in reqs_raw if isinstance(r, dict)]
         for req in reqs:
+            computed_sid = _assign_brd_section_id(
+                req,
+                sections=sections,
+                assignment_policy=assignment_policy,
+            )
             sid = _coerce_brd_section_id(
-                req.get("brdSectionId"),
+                computed_sid,
                 valid_ids=valid_section_ids,
                 unassigned_id=unassigned_id,
             )
 
-            bucket = section_index.setdefault(sid, {})
-            doc_bucket = bucket.setdefault(
-                doc_key,
-                {
-                    "title": doc_title,
-                    "meta": doc_meta,
-                    "relativePath": doc_key,
-                    "requirements": [],
-                },
-            )
-            doc_bucket["requirements"].append(req)
+            kind = req.get("kind")
+            kind_key = str(kind).strip() if isinstance(kind, str) and kind.strip() else "Other"
+            section_index.setdefault(sid, {}).setdefault(kind_key, []).append({"req": req, "docRel": doc_key})
 
     def _section_render_hints(section: dict[str, Any]) -> tuple[bool, bool]:
         hints = section.get("renderingHints")
@@ -446,6 +568,42 @@ def build_pdf(
         )
         return tbl
 
+    # Build bibliography registry upfront for stable numbering.
+    all_source_relpaths: set[str] = set()
+    for sec_groups in section_index.values():
+        for req_items in sec_groups.values():
+            for item in req_items:
+                req = item.get("req")
+                doc_rel = item.get("docRel")
+                if isinstance(req, dict):
+                    refs = req.get("references")
+                    if isinstance(refs, list):
+                        for ref in refs:
+                            if isinstance(ref, dict) and isinstance(ref.get("relativePath"), str) and ref.get("relativePath").strip():
+                                all_source_relpaths.add(ref.get("relativePath").strip())
+                    if isinstance(doc_rel, str) and doc_rel.strip():
+                        all_source_relpaths.add(doc_rel.strip())
+
+    bibliography_relpaths = sorted(all_source_relpaths)
+    citation_number_by_rel = {rel: idx for idx, rel in enumerate(bibliography_relpaths, start=1)}
+
+    def _format_citations(req: dict[str, Any], doc_rel: str | None) -> str:
+        rels: list[str] = []
+        refs = req.get("references")
+        if isinstance(refs, list):
+            for ref in refs:
+                if not isinstance(ref, dict):
+                    continue
+                rel = ref.get("relativePath")
+                if isinstance(rel, str) and rel.strip() and rel.strip() not in rels:
+                    rels.append(rel.strip())
+        if isinstance(doc_rel, str) and doc_rel.strip() and doc_rel.strip() not in rels:
+            rels.append(doc_rel.strip())
+
+        nums = [citation_number_by_rel.get(r) for r in rels]
+        nums = [n for n in nums if isinstance(n, int)]
+        return "".join(f"[{n}]" for n in sorted(set(nums)))
+
     # Render sections in the order defined by brd_sections.json
     for section in sections:
         sid = section.get("id")
@@ -462,31 +620,36 @@ def build_pdf(
             elements.append(Paragraph(_escape_for_paragraph(purpose.strip()), small))
             elements.append(Spacer(1, 0.08 * inch))
 
-        include_refs_allowed, include_quotes_allowed = _section_render_hints(section)
-        render_refs = bool(include_references) and include_refs_allowed
+        # Note: we always cite sources via [n] markers + bibliography.
+        # includeReferences/includeQuotes hints only apply to any extra evidence blocks.
 
-        docs_in_section = section_index.get(sid, {})
-        if not docs_in_section:
+        kind_groups = section_index.get(sid, {})
+        if not kind_groups:
             elements.append(Paragraph(_escape_for_paragraph("(No items)"), small))
             elements.append(PageBreak())
             continue
 
-        for doc_key in sorted(docs_in_section.keys()):
-            doc_bucket = docs_in_section[doc_key]
-            doc_title = doc_bucket.get("title") or doc_key
-            elements.append(Paragraph(_escape_for_paragraph(str(doc_title)), h2))
+        # Keep kind order stable and useful.
+        kind_order = ["Fact", "Requirement", "Assumption", "Constraint", "Definition", "Other"]
+        for kind_key in sorted(kind_groups.keys(), key=lambda k: (kind_order.index(k) if k in kind_order else 99, k)):
+            req_items = kind_groups.get(kind_key, [])
+            if not req_items:
+                continue
+
+            elements.append(Paragraph(_escape_for_paragraph(str(kind_key)), h2))
             elements.append(Spacer(1, 0.06 * inch))
 
-            meta = doc_bucket.get("meta")
-            if isinstance(meta, str) and meta.strip():
-                elements.append(Paragraph(_escape_for_paragraph(meta).replace("\n", "<br/>"), small))
-                elements.append(Spacer(1, 0.10 * inch))
+            # Sort within kind by requirement id.
+            req_items.sort(key=lambda it: str(_safe_get(it.get("req") if isinstance(it, dict) else {}, ["id"], "")))
 
-            reqs = doc_bucket.get("requirements")
-            req_list: list[dict[str, Any]] = [r for r in reqs if isinstance(r, dict)] if isinstance(reqs, list) else []
-            req_list.sort(key=lambda r: str(r.get("id") or ""))
+            for item in req_items:
+                if not isinstance(item, dict):
+                    continue
+                req = item.get("req")
+                doc_rel = item.get("docRel")
+                if not isinstance(req, dict):
+                    continue
 
-            for req in req_list:
                 req_id = req.get("id", "")
                 kind = req.get("kind", "")
                 title_text = req.get("title")
@@ -500,7 +663,9 @@ def build_pdf(
 
                 statement = req.get("statement")
                 if isinstance(statement, str) and statement.strip():
-                    elements.append(Paragraph(_escape_for_paragraph(statement.strip()), body))
+                    citations = _format_citations(req, doc_rel if isinstance(doc_rel, str) else None)
+                    text = statement.strip() + (f" {citations}" if citations else "")
+                    elements.append(Paragraph(_escape_for_paragraph(text), body))
                 else:
                     # Fall back to story/bdd if statement missing
                     story = req.get("story")
@@ -515,7 +680,9 @@ def build_pdf(
                         if so_that:
                             parts.append(f"So that {so_that}.")
                         if parts:
-                            elements.append(Paragraph(_escape_for_paragraph(" ".join(parts)), body))
+                            citations = _format_citations(req, doc_rel if isinstance(doc_rel, str) else None)
+                            text = " ".join(parts) + (f" {citations}" if citations else "")
+                            elements.append(Paragraph(_escape_for_paragraph(text), body))
                     if isinstance(bdd, dict):
                         feature = bdd.get("feature")
                         scenario = bdd.get("scenario")
@@ -529,54 +696,6 @@ def build_pdf(
                 elements.append(_render_story_bdd_minitable(req))
                 elements.append(Spacer(1, 0.08 * inch))
 
-                if render_refs:
-                    refs = req.get("references")
-                    if isinstance(refs, list) and refs:
-                        elements.append(Paragraph(_escape_for_paragraph("References:"), small))
-                        for ref in refs:
-                            if not isinstance(ref, dict):
-                                continue
-                            rel = ref.get("relativePath")
-                            locator = ref.get("locator")
-                            quote = ref.get("quote")
-                            note = ref.get("note")
-
-                            loc_bits: list[str] = []
-                            if isinstance(locator, dict):
-                                if locator.get("confluenceLocalId"):
-                                    loc_bits.append(f"local-id={locator.get('confluenceLocalId')}")
-                                if locator.get("headingPath"):
-                                    hp = locator.get("headingPath")
-                                    if isinstance(hp, list):
-                                        loc_bits.append("headingPath=" + " > ".join(str(x) for x in hp if x))
-                                if locator.get("table"):
-                                    tbl = locator.get("table")
-                                    if isinstance(tbl, dict):
-                                        tdesc = []
-                                        if tbl.get("header"):
-                                            tdesc.append(f"header={tbl.get('header')}")
-                                        if tbl.get("row"):
-                                            tdesc.append(f"row={tbl.get('row')}")
-                                        if tbl.get("column"):
-                                            tdesc.append(f"col={tbl.get('column')}")
-                                        if tdesc:
-                                            loc_bits.append("table(" + ", ".join(tdesc) + ")")
-                                if locator.get("xpath"):
-                                    loc_bits.append(f"xpath={locator.get('xpath')}")
-                                if locator.get("textFingerprint"):
-                                    loc_bits.append(f"fp={locator.get('textFingerprint')}")
-
-                            ref_line = " - ".join(
-                                b for b in [str(rel) if rel else "", "; ".join(loc_bits) if loc_bits else ""] if b
-                            )
-                            if ref_line:
-                                elements.append(Paragraph(_escape_for_paragraph(ref_line), small))
-
-                            if include_quotes_allowed and isinstance(quote, str) and quote.strip():
-                                elements.append(Paragraph(_escape_for_paragraph("Quote: " + quote.strip()), small))
-                            if isinstance(note, str) and note.strip():
-                                elements.append(Paragraph(_escape_for_paragraph("Note: " + note.strip()), small))
-
                 elements.append(Spacer(1, 0.08 * inch))
 
         elements.append(PageBreak())
@@ -589,6 +708,26 @@ def build_pdf(
             for q in qs:
                 elements.append(Paragraph(_escape_for_paragraph("• " + q), body))
             elements.append(Spacer(1, 0.12 * inch))
+
+    # Bibliography
+    elements.append(PageBreak())
+    elements.append(Paragraph(_escape_for_paragraph("Bibliography"), h1))
+    elements.append(Spacer(1, 0.1 * inch))
+    for rel in bibliography_relpaths:
+        num = citation_number_by_rel.get(rel)
+        info = doc_info_by_rel.get(rel, {})
+        title_txt = info.get("title") if isinstance(info, dict) else None
+        url_txt = info.get("url") if isinstance(info, dict) else None
+
+        bits: list[str] = []
+        if isinstance(title_txt, str) and title_txt.strip():
+            bits.append(title_txt.strip())
+        bits.append(rel)
+        if isinstance(url_txt, str) and url_txt.strip():
+            bits.append(url_txt.strip())
+
+        line = f"[{num}] " + " — ".join(bits)
+        elements.append(Paragraph(_escape_for_paragraph(line), small))
 
     doc.build(elements)
 
