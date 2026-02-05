@@ -538,27 +538,33 @@ def build_pdf(
         story_text = _format_story_summary(req.get("story"))
         bdd_text = _format_bdd_summary(req.get("bdd"))
 
+        story_cell = Paragraph(
+            _escape_join(story_text.splitlines()) if story_text != "—" else _escape_for_paragraph("—"),
+            mini_value,
+        )
+        bdd_cell = Paragraph(
+            _escape_join(bdd_text.splitlines()) if bdd_text != "—" else _escape_for_paragraph("—"),
+            mini_value,
+        )
+
         table_data = [
             [
                 Paragraph(_escape_for_paragraph("Story"), mini_label),
-                Paragraph(_escape_join(story_text.splitlines()) if story_text != "—" else _escape_for_paragraph("—"), mini_value),
-            ],
-            [
                 Paragraph(_escape_for_paragraph("BDD"), mini_label),
-                Paragraph(_escape_join(bdd_text.splitlines()) if bdd_text != "—" else _escape_for_paragraph("—"), mini_value),
             ],
+            [story_cell, bdd_cell],
         ]
 
         tbl = Table(
             table_data,
-            colWidths=[0.8 * inch, None],
+            colWidths=[3.35 * inch, 3.35 * inch],
         )
         tbl.setStyle(
             TableStyle(
                 [
                     ("VALIGN", (0, 0), (-1, -1), "TOP"),
                     ("GRID", (0, 0), (-1, -1), 0.25, colors.lightgrey),
-                    ("BACKGROUND", (0, 0), (0, -1), colors.whitesmoke),
+                    ("BACKGROUND", (0, 0), (-1, 0), colors.whitesmoke),
                     ("LEFTPADDING", (0, 0), (-1, -1), 4),
                     ("RIGHTPADDING", (0, 0), (-1, -1), 4),
                     ("TOPPADDING", (0, 0), (-1, -1), 2),
@@ -629,20 +635,15 @@ def build_pdf(
             elements.append(PageBreak())
             continue
 
-        # Keep kind order stable and useful.
-        kind_order = ["Fact", "Requirement", "Assumption", "Constraint", "Definition", "Other"]
-        for kind_key in sorted(kind_groups.keys(), key=lambda k: (kind_order.index(k) if k in kind_order else 99, k)):
-            req_items = kind_groups.get(kind_key, [])
-            if not req_items:
-                continue
+        # Flatten all requirement items under the BRD section.
+        all_items: list[dict[str, Any]] = []
+        for req_items in kind_groups.values():
+            if isinstance(req_items, list):
+                all_items.extend([it for it in req_items if isinstance(it, dict)])
 
-            elements.append(Paragraph(_escape_for_paragraph(str(kind_key)), h2))
-            elements.append(Spacer(1, 0.06 * inch))
+        all_items.sort(key=lambda it: str(_safe_get(it.get("req") if isinstance(it, dict) else {}, ["id"], "")))
 
-            # Sort within kind by requirement id.
-            req_items.sort(key=lambda it: str(_safe_get(it.get("req") if isinstance(it, dict) else {}, ["id"], "")))
-
-            for item in req_items:
+        for item in all_items:
                 if not isinstance(item, dict):
                     continue
                 req = item.get("req")
@@ -651,20 +652,16 @@ def build_pdf(
                     continue
 
                 req_id = req.get("id", "")
-                kind = req.get("kind", "")
                 title_text = req.get("title")
 
-                header_bits = [str(req_id).strip(), f"[{kind}]" if kind else ""]
-                header = " ".join(b for b in header_bits if b)
                 if isinstance(title_text, str) and title_text.strip():
-                    header = f"{header} — {title_text.strip()}"
-                if header.strip():
-                    elements.append(Paragraph(_escape_for_paragraph(header), req_header))
+                    elements.append(Paragraph(_escape_for_paragraph(title_text.strip()), req_header))
 
                 statement = req.get("statement")
                 if isinstance(statement, str) and statement.strip():
                     citations = _format_citations(req, doc_rel if isinstance(doc_rel, str) else None)
-                    text = statement.strip() + (f" {citations}" if citations else "")
+                    tag = f" [{str(req_id).strip()}]" if isinstance(req_id, str) and req_id.strip() else ""
+                    text = statement.strip() + tag + (f" {citations}" if citations else "")
                     elements.append(Paragraph(_escape_for_paragraph(text), body))
                 else:
                     # Fall back to story/bdd if statement missing
@@ -681,7 +678,8 @@ def build_pdf(
                             parts.append(f"So that {so_that}.")
                         if parts:
                             citations = _format_citations(req, doc_rel if isinstance(doc_rel, str) else None)
-                            text = " ".join(parts) + (f" {citations}" if citations else "")
+                            tag = f" [{str(req_id).strip()}]" if isinstance(req_id, str) and req_id.strip() else ""
+                            text = " ".join(parts) + tag + (f" {citations}" if citations else "")
                             elements.append(Paragraph(_escape_for_paragraph(text), body))
                     if isinstance(bdd, dict):
                         feature = bdd.get("feature")
