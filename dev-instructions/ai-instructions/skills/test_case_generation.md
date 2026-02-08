@@ -20,5 +20,6 @@ Recommend which tests should be unit vs integration.
 - [ ] Avoid flaky tests; control time, randomness, and external services.
 - [ ] Prefer a small number of high-value integration tests over excessive mocking.
 - [ ] Include adversarial inputs (empty strings, max sizes, special chars).
+- [ ] Change control: before creating/editing test files or running any write/execute actions, first propose the exact file changes and ask for explicit approval.
 - [ ] Related to: acceptance_criteria_gherkin, security_review
 ---

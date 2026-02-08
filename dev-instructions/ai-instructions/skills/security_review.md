@@ -21,5 +21,6 @@ Provide fixes and verification steps.
 - [ ] Prefer allowlists and explicit validation.
 - [ ] Ensure logs do not leak tokens/PII.
 - [ ] Add negative tests for security boundaries.
+- [ ] Change control: if applying this skill would require creating/editing files (e.g., tests/docs) or running write/execute actions, first propose the exact file changes and ask for explicit approval before proceeding.
 - [ ] Related to: code_review, test_case_generation
 ---

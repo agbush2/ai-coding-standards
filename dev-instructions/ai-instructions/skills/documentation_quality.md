@@ -20,5 +20,6 @@ Propose edits as a short patch list.
 - [ ] Prefer short sections with strong headings.
 - [ ] Add a glossary for domain terms.
 - [ ] Keep docs consistent with repository structure and scripts.
+- [ ] Change control: if applying this skill would require creating/editing files or running write/execute actions, first propose the exact file changes and ask for explicit approval before proceeding.
 - [ ] Related to: requirements_gathering, confluence_sync
 ---

@@ -34,6 +34,7 @@ Upload safely:
 ```
 
 **Implementation Notes**:
+- [ ] Change control: before running any commands/scripts or creating/editing files, first propose the exact actions and file changes and ask for explicit approval.
 - [ ] Scripts discover the Confluence folder via ai-agile/ai-agile.json (process.steps.SourceMaterial.subfolders.confluence). If auto-detection fails, pass `--ai-agile-root`.
 - [ ] LLM behavior: when asked to “pull latest Confluence material”, instruct the user to run download_confluence.py locally first, then base analysis only on the refreshed local `.xhtml` (and any derived `.md`). Do not assume remote content.
 - [ ] Prefer `--dry-run` for uploads; do not perform a real upload unless explicitly requested.

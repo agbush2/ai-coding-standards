@@ -19,5 +19,6 @@ Keep each scenario specific and verifiable.
 - [ ] Use domain language, not implementation details.
 - [ ] Ensure every scenario has an observable outcome.
 - [ ] Add a glossary if terms are ambiguous.
+- [ ] Change control: if applying this skill would require creating/editing files (e.g., specs/tests) or running write/execute actions, first propose the exact file changes and ask for explicit approval before proceeding.
 - [ ] Related to: requirements_gathering, test_case_generation
 ---

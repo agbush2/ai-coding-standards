@@ -1,10 +1,27 @@
-# Agent Skills Standard
-
-**Skill Name**: Agent Design & Orchestration
-**Version**: 1.0 (2026-01-28)
-**Persona(s)**: Developer, Product Manager, Quality Engineer
-
 ---
+**Skill Name**: Agent Design & Orchestration  
+**Version**: 1.0 (2026-01-28)  
+**Persona(s)**: Developer, Product Manager, Quality Engineer  
+**Description**:  
+Define how to design and orchestrate multi-step, tool-using agents that reuse skills, respect personas, and operate safely under repository standards.
+
+**Usage Example**:
+```prompt
+Act as the Developer persona.
+Design an agent workflow for <task> that:
+- Breaks work into clear steps with checkpoints
+- Uses existing skills from dev-instructions/ai-instructions/skills where relevant
+- Applies change control: propose file changes and ask approval before write/execute actions
+- Includes basic failure modes and recovery steps
+```
+
+**Implementation Notes**:
+- [ ] Change control: before running tools/commands or creating/editing files, first propose the exact actions and file changes and ask for explicit approval.
+- [ ] Prefer skill reuse over bespoke one-off prompting; keep agent behaviors modular.
+- [ ] Related to: create_skills, clarifying_questions, code_review
+---
+
+# Agent Skills Standard
 
 ## Definition
 An "agent" is an autonomous or semi-autonomous AI entity capable of multi-step reasoning, tool use, and persona-driven task execution. Agents leverage skills, prompt templates, and standards to perform complex workflows, often interacting with external systems or orchestrating other AI components.
