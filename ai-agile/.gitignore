@@ -1,6 +1,0 @@
-# Local configuration and secrets
-**/.env
-
-# Confluence content (downloaded)
-01_source-material/confluence/*
-!01_source-material/confluence/confluence.config
