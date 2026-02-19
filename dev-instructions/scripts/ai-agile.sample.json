@@ -16,7 +16,8 @@
         "folder": "01_source-material",
         "purpose": "Raw inputs and references (e.g., Confluence exports).",
         "subfolders": {
-          "confluence": "01_source-material/confluence"
+          "confluence": "01_source-material/confluence",
+          "figma": "01_source-material/figma"
         }
       },
       "GeneratedMaterials": {
