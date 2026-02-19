@@ -4,17 +4,22 @@
     "doNotCommit": true
   },
   "secrets": {
-    "figma": {
-      "token": ""
+    "jira": {
+      "site": "https://yourcompany.atlassian.net",
+      "email": "user@yourcompany.com",
+      "token": "JIRA_API_TOKEN_HERE"
     },
     "confluence": {
       "sites": [
         {
-          "baseUrl": "https://example.atlassian.net",
-          "email": "",
-          "token": ""
+          "baseUrl": "https://yourcompany.atlassian.net",
+          "email": "user@yourcompany.com",
+          "token": "CONFLUENCE_API_TOKEN_HERE"
         }
       ]
+    },
+    "figma": {
+      "token": "FIGMA_PERSONAL_ACCESS_TOKEN_HERE"
     }
   }
 }
